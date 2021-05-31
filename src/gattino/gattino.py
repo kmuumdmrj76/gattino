@@ -7,19 +7,19 @@ import time
 from enum import Enum
 
 
-class lynx_event(Enum):
+class gattino_event(Enum):
     EVENT_START = "EVENT_START"
     EVENT_TICK = "EVENT_TICK"
     EVENT_EXIT = "EVENT_EXIT"
 
 
-class lynx:
+class gattino:
     # 应用id
     appid = None
     # 配置文件
     conf_file = None
     # 配置文件节点
-    conf_key = "lynx"
+    conf_key = "gattino"
     # 应用id文件
     pid_file = "app.pid"
     # 命令行参数
@@ -39,7 +39,7 @@ class lynx:
         self.appid = appid if appid else str(uuid.uuid1())
         self.conf_file = conf if conf else "app.conf"
         self.argv = argv if argv else None
-        for item in lynx_event:
+        for item in gattino_event:
             self.events[item.value] = []
 
     """
@@ -89,12 +89,12 @@ class lynx:
         def wrapped_function(*args, **kwargs):
             self.is_running = True
             print(f"应用[{self.appid}]启动")
-            [item(None) for item in self.events[lynx_event.EVENT_START.value]]
+            [item(None) for item in self.events[gattino_event.EVENT_START.value]]
             while self.is_running:
                 ts = time.time()
-                [item(ts) for item in self.events[lynx_event.EVENT_TICK.value]]
+                [item(ts) for item in self.events[gattino_event.EVENT_TICK.value]]
                 func(*args, **kwargs)
-            [item(None) for item in self.events[lynx_event.EVENT_EXIT.value]]
+            [item(None) for item in self.events[gattino_event.EVENT_EXIT.value]]
             print(f"应用[{self.appid}]退出")
             return
         return wrapped_function
