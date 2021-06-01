@@ -7,13 +7,13 @@ import time
 from enum import Enum
 
 
-class gattino_event(Enum):
+class GattinoEvent(Enum):
     EVENT_START = "EVENT_START"
     EVENT_TICK = "EVENT_TICK"
     EVENT_EXIT = "EVENT_EXIT"
 
 
-class gattino:
+class Gattino:
     # 应用id
     appid = None
     # 配置文件
@@ -28,7 +28,7 @@ class gattino:
     conf = {}
     # 扩展文件包
     ext = []
-    #
+    # 配置工具
     cfg = None
     # 事件列表
     events = {}
@@ -39,7 +39,7 @@ class gattino:
         self.appid = appid if appid else str(uuid.uuid1())
         self.conf_file = conf if conf else "app.conf"
         self.argv = argv if argv else None
-        for item in gattino_event:
+        for item in GattinoEvent:
             self.events[item.value] = []
 
     """
@@ -81,7 +81,7 @@ class gattino:
         return wrapped_function
 
     """
-    启动函数
+    启动装饰器
     """
 
     def run(self, func):
@@ -89,12 +89,14 @@ class gattino:
         def wrapped_function(*args, **kwargs):
             self.is_running = True
             print(f"应用[{self.appid}]启动")
-            [item(None) for item in self.events[gattino_event.EVENT_START.value]]
+            [item(None)
+             for item in self.events[GattinoEvent.EVENT_START.value]]
             while self.is_running:
                 ts = time.time()
-                [item(ts) for item in self.events[gattino_event.EVENT_TICK.value]]
+                [item(ts)
+                 for item in self.events[GattinoEvent.EVENT_TICK.value]]
                 func(*args, **kwargs)
-            [item(None) for item in self.events[gattino_event.EVENT_EXIT.value]]
+            [item(None) for item in self.events[GattinoEvent.EVENT_EXIT.value]]
             print(f"应用[{self.appid}]退出")
             return
         return wrapped_function
