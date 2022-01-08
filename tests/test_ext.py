@@ -1,9 +1,9 @@
 from gattino import ExtBase
 from gattino import Gattino
 from gattino import GattinoEvent
+import pytest
 
-
-def test_ext():
+def test_ext(gattino_app):
 
     class Gattino_T(ExtBase):
         is_start = False
@@ -29,7 +29,7 @@ def test_ext():
 
         def stop(self, params):
             self.is_stop = True
-    app = Gattino()
+    app = gattino_app
     app_t = Gattino_T(app)
 
     @app.run(1)
@@ -40,6 +40,3 @@ def test_ext():
     assert app_t.is_start == True
     assert app_t.is_run == True
     assert app_t.is_stop == True
-
-
-test_ext()

@@ -23,8 +23,8 @@ def test_gattino_init(appid, appid_expect, conf, conf_expect, conf_name_expect, 
 
 @pytest.mark.parametrize(("args", "args_key_expect", "args_value_expect"), [({"key0": "value0"}, "key0", "value0"), ({"key0": "value0", "key1": "value1"}, "key1", "value1")])
 @pytest.mark.parametrize(("kwargs", "kwargs_key_expect", "kwargs_value_expect"), [({"name": "abc"}, "name", "abc"), ])
-def test_gattino_app_init(args, args_key_expect, args_value_expect, kwargs, kwargs_key_expect, kwargs_value_expect):
-    app = Gattino()
+def test_gattino_app_init(gattino_app, args, args_key_expect, args_value_expect, kwargs, kwargs_key_expect, kwargs_value_expect):
+    app = gattino_app
     isruned = False
 
     @app.init(args, **kwargs)
@@ -39,8 +39,8 @@ def test_gattino_app_init(args, args_key_expect, args_value_expect, kwargs, kwar
 
 @pytest.mark.parametrize("delta_time", [1, 2, 5])
 @pytest.mark.parametrize("at_once", [True, False])
-def test_gattino_app_run(delta_time, at_once):
-    app = Gattino()
+def test_gattino_app_run(gattino_app, delta_time, at_once):
+    app = gattino_app
 
     @ app.run(delta_time, at_once)
     def add_run():
