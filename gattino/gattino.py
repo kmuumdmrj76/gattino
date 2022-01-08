@@ -32,6 +32,8 @@ class Gattino:
     cfg = None
     # 事件列表
     events = {}
+    # 运行方法列表
+    runner_Dict = {}
 
     is_running = True
 
@@ -42,14 +44,14 @@ class Gattino:
         for item in GattinoEvent:
             self.events[item.value] = []
 
-    """
-    从配置文件读取配置信息
-    """
-
     def load_conf(self):
+        """
+        从配置文件加载配置
+        """
         self.cfg = ConfigParser()
         self.cfg.read(self.conf_file)
         self.conf = dict(self.cfg.items(self.conf_key))
+
     """
     从配置函数读取配置信息
     """
@@ -57,46 +59,89 @@ class Gattino:
     def load_conf_read_args(self, func, args):
         return dict(zip(inspect.signature(func).parameters.keys(), args))
 
-    def init(self, func):
-        @wraps(func)
-        def wrapped_function(*args, **kwargs):
-            # 初始化appid
-            with open(self.pid_file, 'w') as f:
-                f.write(self.appid)
-            # 从配置文件加载
-            self.load_conf()
-            print(f"配置文件:[{self.conf_file}]加载[{len(self.conf.items())}]项配置信息")
-            # 加载扩展配置
-            for item in self.ext:
-                item_conf = item.load_conf()
-                print(
-                    f"扩展配置文件:[{item.conf_key}]|[{self.conf_file}]加载[{len(item_conf)}]项配置信息")
-                self.conf.update(item_conf)
-            # 从参数中读取配置
-            args_conf = self.load_conf_read_args(func, args)
-            print(f"配置函数:[{func.__name__}]加载[{len(args_conf.items())}]项配置信息")
-            self.conf.update(args_conf)
-            # 执行配置函数
-            return func(*args, **kwargs)
+    """
+    初始化装饰器
+    """
+
+    def init(self, *args2, **option):
+        # 初始化appid
+        with open(self.pid_file, 'w') as f:
+            f.write(self.appid)
+        # 从配置文件加载
+        self.load_conf()
+        print(
+            f"配置文件:[{self.conf_file}]加载[{len(self.conf.items())}]项配置信息")
+        # 加载扩展配置
+        for item in self.ext:
+            item_conf = item.load_conf()
+            print(
+                f"扩展配置文件:[{item.conf_key}]|[{self.conf_file}]加载[{len(item_conf.items())}]项配置信息")
+            self.conf.update(item_conf)
+        # 从参数中读取配置
+        args_conf = {}
+        [args_conf.update(arg) for arg in args2]
+        print(
+            f"配置函数:[{self.init.__name__}]加载[{len(args_conf.items())}]项配置信息")
+        self.conf.update(args_conf)
+        print(
+            f"配置函数:[{self.init.__name__}-KV]加载[{len(option.items())}]项配置信息")
+        self.conf.update(option)
+
+        def wrapped_function(func):
+            @wraps(func)
+            def wrapper(*args, **kwargs):
+                # 执行配置函数
+                return func(*args, **kwargs)
+            return wrapper
+        return wrapped_function
+
+    def run(self, delta_time: int = 0, at_once: bool = False):
+        """[启动装饰器]
+
+        Args:
+            delta_time (int, optional): [执行间隔]. Defaults to 0.
+            at_once (bool, optional): [是否立刻执行]. Defaults to False.
+        """
+        def wrapped_function(func):
+            print(
+                f"添加运行器:[{func.__name__}]加载[执行间隔]:{delta_time},是否立刻执行:{at_once}]")
+            # 添加运行器
+            self.runner_Dict[func.__name__] = {"func":
+                                               func, "delta_time": delta_time, "at_once": at_once, "timer": 0 if at_once else delta_time}
+
+            @wraps(func)
+            def wrapper(*args, **kwargs):
+                return func(*args, **kwargs)
+            return wrapper
         return wrapped_function
 
     """
-    启动装饰器
+    启动
     """
 
-    def run(self, func):
-        @wraps(func)
-        def wrapped_function(*args, **kwargs):
-            self.is_running = True
-            print(f"应用[{self.appid}]启动")
-            [item(None)
-             for item in self.events[GattinoEvent.EVENT_START.value]]
-            while self.is_running:
-                ts = time.time()
-                [item(ts)
-                 for item in self.events[GattinoEvent.EVENT_TICK.value]]
-                func(*args, **kwargs)
-            [item(None) for item in self.events[GattinoEvent.EVENT_EXIT.value]]
-            print(f"应用[{self.appid}]退出")
-            return
-        return wrapped_function
+    def start(self):
+        self.is_running = True
+        print(f"应用[{self.appid}]启动")
+        [item(None)
+         for item in self.events[GattinoEvent.EVENT_START.value]]
+        ts = time.time()
+        for _, v in self.runner_Dict.items():
+            v["timer"] = ts+(0 if v["at_once"] else v["delta_time"])
+        while self.is_running:
+            for _, v in self.runner_Dict.items():
+                if v["timer"] - ts < 0:
+                    v["timer"] = ts + v["delta_time"]
+                    v["func"]()
+            [item(ts)
+             for item in self.events[GattinoEvent.EVENT_TICK.value]]
+            ts = time.time()
+        [item(None)
+         for item in self.events[GattinoEvent.EVENT_EXIT.value]]
+        print(f"应用[{self.appid}]退出")
+
+    """
+    中止
+    """
+
+    def stop(self):
+        self.is_running = False
