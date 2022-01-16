@@ -35,6 +35,7 @@ class Gattino:
     # 运行方法列表
     runner_Dict = {}
 
+    timer_delta = 0.1
     is_running = True
 
     def __init__(self, appid=None, conf=None, argv=None):
@@ -135,6 +136,7 @@ class Gattino:
             [item(ts)
              for item in self.events[GattinoEvent.EVENT_TICK.value]]
             ts = time.time()
+            time.sleep(self.timer_delta)
         [item(None)
          for item in self.events[GattinoEvent.EVENT_EXIT.value]]
         print(f"应用[{self.appid}]退出")
